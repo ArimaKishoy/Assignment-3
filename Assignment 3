@@ -1,0 +1,179 @@
+import java.sql.*;
+import java.util.Scanner;
+import java.util.ArrayList;
+class Student {
+    private String name;
+    private int id;
+    private int year;
+
+    public Student(String name, int id, int year) {
+        this.name = name;
+        this.id = id;
+        this.year = year;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public int getYear() {
+        return year;
+    }
+}
+
+public class Main {
+    private static Connection getConnection() throws SQLException {
+        String url = "jdbc:postgresql://localhost:5433/postgres";
+        String username = "postgres";
+        String password = "Adlet2005";
+
+        return DriverManager.getConnection(url, username, password);
+    }
+
+    private static void createTable() {
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+            String sql = "CREATE TABLE if NOT EXISTS students (id SERIAL PRIMARY KEY, name VARCHAR(50), age INTEGER)";
+            stmt.executeUpdate(sql);
+            System.out.println("The table has been created");
+        } catch (SQLException e) {
+            System.out.println("Error creating the table: " + e.getMessage());
+        }
+    }
+
+    private static void insertData(String name, int age) {
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement("INSERT INTO students (name, age) VALUES (?, ?)")) {
+            pstmt.setString(1, name);
+            pstmt.setInt(2, age);
+            int rowsInserted = pstmt.executeUpdate();
+            if (rowsInserted > 0) {
+                System.out.println("An entry has been added");
+            }
+        } catch (SQLException e) {
+            System.out.println("Error when adding a record: " + e.getMessage());
+        }
+    }
+
+    private static void getAllData() {
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM students")) {
+            while (rs.next()) {
+                System.out.println("ID: "+ rs.getInt("id"));
+                System.out.println("Name: "+ rs.getString("name"));
+                System.out.println("Age: "+ rs.getString("age"));
+                System.out.println("__________________________________");
+            }
+        } catch (SQLException e) {
+
+            System.out.println("Error receiving data: " + e.getMessage());
+
+        }
+    }
+
+    private static void updateData(int id, String newName) {
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement("UPDATE students SET name = ? WHERE id = ?")) {
+            pstmt.setString(1, newName);
+            pstmt.setInt(2, id);
+            int rowsUpdated = pstmt.executeUpdate();
+            if (rowsUpdated > 0) {
+
+                System.out.println("The record has been updated");
+
+            } else {
+                System.out.println("An entry with the specified ID was not found");
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error updating the record: " + e.getMessage());
+        }
+    }
+
+    private static void deleteData(int id) {
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement("DELETE FROM students WHERE id = ?")) {
+            pstmt.setInt(1, id);
+            int rowsDeleted = pstmt.executeUpdate();
+            if (rowsDeleted > 0) {
+                System.out.println("The record has been deleted");
+            } else {
+                System.out.println("An entry with the specified ID was not found");
+            }
+        } catch (SQLException e) {
+            System.out.println("Error deleting a record: " + e.getMessage());
+        }
+    }
+
+    public static void main(String[] args) {
+        ArrayList<Student> students = new ArrayList<>();
+        Scanner scanner = new Scanner(System.in);
+        createTable();
+        insertData("John", 25);
+        insertData("Anna", 30);
+        insertData("David", 22);
+        getAllData();
+        updateData(2, "Maria");
+        deleteData(3);
+        while (true) {
+            System.out.println("\n1. Insert student");
+            System.out.println("2. All data");
+            System.out.println("3. Update data");
+            System.out.println("4. Delete data");
+            System.out.println("Exit");
+            int choice = scanner.nextInt();
+            scanner.nextLine();
+            switch (choice) {
+                case 1:
+                    System.out.println("Введите имя студента:");
+                    String name = scanner.nextLine();
+
+                    System.out.println("Введите id студента:");
+                    int id = scanner.nextInt();
+                    scanner.nextLine();
+
+                    System.out.println("Введите год студента:");
+                    int year = scanner.nextInt();
+                    scanner.nextLine();
+
+                    students.add(new Student(name, id, year));
+                    System.out.println("Студент создан");
+                    break;
+                case 2:
+                    System.out.println("_________Список всех студентов_____________");
+                    getAllData();
+                    break;
+                case 3:
+                    System.out.println("Введите id студента, чье имя нужно изменить:");
+                    int searchId = scanner.nextInt();
+                    scanner.nextLine();
+
+                    boolean found = false;
+                    for (Student student : students) {
+                        if (student.getId() == searchId) {
+                            System.out.println("Введите новое имя для студента:");
+                            String newName = scanner.nextLine();
+                            student = new Student(newName, student.getId(), student.getYear());
+                            System.out.println("Имя студента изменено");
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        System.out.println("Студент с указанным id не найден");
+                    }
+                    break;
+                case 5:
+                    System.out.println("Программа завершена.");
+                    System.exit(0);
+                default:
+                    break;
+            }
+        }
+    }
+}
